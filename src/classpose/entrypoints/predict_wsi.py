@@ -467,7 +467,7 @@ class PostProcessor:
                     continue
                 center = np.round(polygon.centroid.coords[0], 2).tolist()
                 curr_coords = curr_coords.tolist()
-                curr_coords.append(curr_coords[0])
+                curr_coords.append(curr_coords[0].copy())
                 cl = class_masks[cell_mask][0]
                 curr_cell = {
                     "id": str(uuid.uuid4()),
@@ -637,10 +637,14 @@ def apply_bounds_offset_to_feature(feature: dict, bounds_x: float, bounds_y: flo
     if "coordinates" not in geometry:
         return feature
     
+    shifted_coordinates = []
     for ring in geometry["coordinates"]:
-        for point in ring:
-            point[0] -= bounds_x
-            point[1] -= bounds_y
+        shifted_ring = [
+            [point[0] - bounds_x, point[1] - bounds_y]
+            for point in ring
+        ]
+        shifted_coordinates.append(shifted_ring)
+    geometry["coordinates"] = shifted_coordinates
     
     if "properties" in feature and "measurements" in feature["properties"]:
         for measurement in feature["properties"]["measurements"]:
@@ -746,7 +750,7 @@ def shapely_polygon_to_geojson(
     coords = np.array(polygon.exterior.coords.xy).T
     center = coords.mean(axis=1).tolist()
     coords = coords.tolist()
-    coords.append(coords[0])
+    coords.append(coords[0].copy())
     feature_id = str(uuid.uuid4())
     properties = {
         "objectType": object_type,
